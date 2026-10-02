@@ -13,8 +13,14 @@ Keep it short and specific. Point at methods, call sites, and error text.
 
 **Will the consumer, untouched, still compile and pass?** Yes or no.
 
+Yes.
+
 **Why.** What does the compiler do with the consumer's existing call sites once
 the new overload exists?
+
+`FrontDesk.java:27` and `:33` pass four arguments, so the compiler still binds them to the
+original 4-arg `createBooking` (the 5-arg overload isn't a candidate, even for the literal `null`),
+and since that method keeps its behavior, the consumer never notices.
 
 ### What happened
 
