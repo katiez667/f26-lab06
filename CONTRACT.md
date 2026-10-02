@@ -81,8 +81,44 @@ Only the consumer's own build can detect that break.
 **What the build printed.** Paste it for each module, including file and
 line for anything that failed.
 
+`mvn -B clean test`, **`lab06-api`**:
+
+```
+[INFO] Building lab06-api 1.0.0                                           [2/3]
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+```
+
+**`lab06-consumer`**:
+
+```
+[INFO] Building lab06-consumer 1.0.0                                      [3/3]
+[ERROR] COMPILATION ERROR :
+[ERROR] .../consumer/src/main/java/edu/cmu/cs214/frontdesk/FrontDesk.java:[27,19] method createBooking in interface edu.cmu.cs214.booking.BookingApi cannot be applied to given types;
+[ERROR]   required: edu.cmu.cs214.booking.BookingRequest
+[ERROR]   found:    java.lang.String,long,long,<nulltype>
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] .../consumer/src/main/java/edu/cmu/cs214/frontdesk/FrontDesk.java:[33,19] method createBooking in interface edu.cmu.cs214.booking.BookingApi cannot be applied to given types;
+[ERROR]   required: edu.cmu.cs214.booking.BookingRequest
+[ERROR]   found:    java.lang.String,long,long,java.lang.String
+[ERROR]   reason: actual and formal argument lists differ in length
+[INFO] Reactor Summary for lab06-booking-parent 1.0.0:
+[INFO] lab06-booking-parent ............................... SUCCESS
+[INFO] lab06-api .......................................... SUCCESS
+[INFO] lab06-consumer ..................................... FAILURE
+[INFO] BUILD FAILURE
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project lab06-consumer: Compilation failure
+```
+
+Matches the prediction: exactly `FrontDesk.java:27` (`bookWalkIn`) and `:33` (`joinWaitlist`), at compile time.
+
 **Which module's tests ran, and which did not.** And what that tells you about
 who can detect a contract break.
+
+`api`'s 5 tests ran and passed. `consumer`'s 7 tests never ran: its main code failed at
+`compile`, so Maven never reached `testCompile` or `test`. Our green suite could not have caught
+this, because I rewrote it to the new signature, so it only checks the new API. The break is visible
+only from the caller's side, so only the consumer's build (the other team's code) detects it. If their
+suite weren't in our build, we'd have shipped this thinking everything was green.
 
 ### Step 2: the deprecation path
 

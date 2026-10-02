@@ -20,13 +20,14 @@ import java.util.List;
 public interface BookingApi {
 
     /**
-     * Books a room for the half-open range {@code [startMinute, endMinute)}.
+     * Books a room for the request's half-open range
+     * {@code [startMinute, endMinute)}.
      *
      * <p>If no CONFIRMED booking on that room overlaps the range, the returned
      * booking is CONFIRMED and holds the room.
      *
      * <p>If some CONFIRMED booking does overlap, what happens next is decided
-     * by {@code waitlistKey}:
+     * by the request's {@code waitlistKey}:
      * <ul>
      *   <li>{@code waitlistKey} null means do not waitlist on conflict. No
      *       booking is created and the method returns null. Nothing about the
@@ -44,45 +45,21 @@ public interface BookingApi {
      * interprets it. The key has no effect when there is no conflict: the
      * booking is CONFIRMED and the key is simply retained.
      *
+     * <p>The notes are likewise opaque. This API stores them and hands them
+     * back on {@link Booking#getNotes()}; they have no effect on conflicts,
+     * waitlisting, or promotion.
+     *
      * <p>Ids are assigned by the implementation, are unique, and increase in
      * creation order.
      *
-     * @param roomId      the room to book, non-null
-     * @param startMinute first minute of the booking, inclusive
-     * @param endMinute   first minute after the booking, exclusive; must be
-     *                    greater than {@code startMinute}
-     * @param waitlistKey caller's waitlist key, or null to decline waitlisting
+     * @param request what to book; see {@link BookingRequest} for each field
      * @return the CONFIRMED booking, the WAITLISTED booking, or null when the
      *         range conflicts and no waitlist key was given
-     * @throws IllegalArgumentException if {@code roomId} is null or
-     *         {@code endMinute} is not greater than {@code startMinute}
+     * @throws IllegalArgumentException if {@code request} or its
+     *         {@code roomId} is null, or its {@code endMinute} is not greater
+     *         than its {@code startMinute}
      */
-    Booking createBooking(String roomId, long startMinute, long endMinute,
-                          String waitlistKey);
-
-    /**
-     * Books a room exactly as {@link #createBooking(String, long, long, String)}
-     * does, and also attaches free-text notes to the booking.
-     *
-     * <p>The notes are an opaque caller-supplied string. This API stores them
-     * and hands them back on {@link Booking#getNotes()}; it never interprets
-     * them, and they have no effect on conflicts, waitlisting, or promotion.
-     * Calling the four-argument overload is equivalent to calling this one
-     * with {@code notes} null.
-     *
-     * @param roomId      the room to book, non-null
-     * @param startMinute first minute of the booking, inclusive
-     * @param endMinute   first minute after the booking, exclusive; must be
-     *                    greater than {@code startMinute}
-     * @param waitlistKey caller's waitlist key, or null to decline waitlisting
-     * @param notes       free-text notes for the booking, or null for none
-     * @return the CONFIRMED booking, the WAITLISTED booking, or null when the
-     *         range conflicts and no waitlist key was given
-     * @throws IllegalArgumentException if {@code roomId} is null or
-     *         {@code endMinute} is not greater than {@code startMinute}
-     */
-    Booking createBooking(String roomId, long startMinute, long endMinute,
-                          String waitlistKey, String notes);
+    Booking createBooking(BookingRequest request);
 
     /**
      * Returns every non-cancelled booking for one room, ordered by start minute.
