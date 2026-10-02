@@ -185,20 +185,68 @@ Not coded. One misuse, one redesign, one cost. Discuss it with your TA.
 
 **What is easy to get wrong.** One specific thing about the API surface.
 
+The bare `boolean notifyWaitlist` in `cancelBooking(long bookingId, boolean notifyWaitlist)`.
+At the call site it's just `true` or `false`, so nothing says what the flag controls, and both
+values type-check, so flipping one compiles fine.
+
 **The call site.** File and line in `consumer/`, with the call. Show the
 code that a reader cannot understand without opening the javadoc, or that a
 caller could get wrong with the compiler still happy.
 
+```java
+// FrontDesk.java:48, cancelAndOfferToWaitlist
+return api.cancelBooking(bookingId, true);
+
+// FrontDesk.java:53, cancelQuietly
+return api.cancelBooking(bookingId, false);
+```
+
+Reading `cancelBooking(bookingId, true)` alone, `true` could mean force, refund, or send email.
+Only the javadoc says it means "promote the next waitlisted booking." The only thing telling the
+two methods apart is one boolean literal.
+
 **What goes wrong when it happens.** Silent bad behavior, wrong data, a crash
 somewhere far away?
+
+Silent wrong data, with no exception and no compile error. If `cancelQuietly` passed `true`, a desk
+typo correction would promote a waitlisted guest to CONFIRMED, handing them a room nobody meant to
+give. The reverse leaves a freed room empty while the guest stays WAITLISTED. Only a test that checks
+the waitlisted booking's status afterwards would notice.
 
 ### The redesign
 
 **The proposal.** Types, enums, factories, or whatever you are proposing. Show
 the new signature and the new call site.
 
+Replace the boolean with a two-value enum that names the behavior:
+
+```java
+public enum OnCancel {
+    /** Promote the first eligible overlapping WAITLISTED booking. */
+    PROMOTE_WAITLIST,
+    /** Cancel without promoting anyone. */
+    LEAVE_WAITLIST
+}
+
+boolean cancelBooking(long bookingId, OnCancel onCancel);
+```
+
+New call sites:
+
+```java
+api.cancelBooking(bookingId, OnCancel.PROMOTE_WAITLIST);  // FrontDesk.java:48
+api.cancelBooking(bookingId, OnCancel.LEAVE_WAITLIST);    // FrontDesk.java:53
+```
+
 **Why the mistake is now hard or impossible to make.** Point at the mechanism,
 such as the compiler, a validating constructor, or an exhaustive switch.
+
+The compiler does the enforcing. The parameter type is `OnCancel`, so `true`/`false` no longer
+compile, and the only values that do are named constants that say what they do. Mixing them up means
+typing the wrong word, which a reviewer can see, not flipping an unlabeled literal. Inside the
+implementation, a `switch (onCancel)` over the enum is checked for exhaustiveness, so a future third
+option (say `NOTIFY_ONLY`) can't be silently ignored. A `null` enum still compiles, so
+`cancelBooking` would throw `IllegalArgumentException` on null, and the javadoc would say so.
 
 ### One tradeoff
 
@@ -206,4 +254,17 @@ such as the compiler, a validating constructor, or an exhaustive switch.
 against the deprecation path you just built, or more types for a newcomer to
 learn. "No real downside" does not count.
 
+Migration burden on a team we don't control, again. Removing `cancelBooking(long, boolean)` is a
+breaking change just like the `createBooking` fold: `FrontDesk.java:48` and `:53` would stop
+compiling. So it needs another `@Deprecated` overload (the boolean version delegating to the enum
+one), and the front desk team gets a second round of migration warnings right after the
+`BookingRequest` one. That's two API churns in a row for the same caller. It also adds one more type
+(`OnCancel`) for a newcomer to learn, and a longer call site.
+
 **When the price is worth paying.** A condition under which it is.
+
+When getting the flag wrong is costly and silent, as it is here: a real guest is given or denied a
+room with no error anywhere. It's also worth it while the API still has few callers, and ideally
+bundled into the same deprecation cycle as the `BookingRequest` change, so callers migrate once
+instead of twice. For a flag with harmless effects, or an API with many entrenched callers, the
+churn may not be worth it.
