@@ -1,5 +1,7 @@
 # Lab 6 Starter: Booking API and a Consumer You Do Not Own
 
+**AI tools used:** Claude Code (desktop app) with Claude Opus 5.5 (`claude-opus-5-5`).
+
 Two Maven modules in one repo. `api/` is a room booking API you maintain.
 `consumer/` is a walk-in front desk app built on top of it by another team.
 
