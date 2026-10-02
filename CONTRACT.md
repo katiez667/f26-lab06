@@ -26,10 +26,30 @@ and since that method keeps its behavior, the consumer never notices.
 
 **The result.** What the build printed for each module.
 
+`mvn -B clean test`:
+
+```
+[INFO] Building lab06-api 1.0.0                                           [2/3]
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building lab06-consumer 1.0.0                                      [3/3]
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] lab06-api .......................................... SUCCESS
+[INFO] lab06-consumer ..................................... SUCCESS
+[INFO] BUILD SUCCESS
+```
+
 **If your prediction was wrong,** say what you missed.
+
+Prediction was right. The consumer recompiled against the new API with no errors or warnings,
+and the old 4-arg method now delegates to the 5-arg one with `notes = null`, so behavior is identical.
 
 **Is an additive change always safe in Java?** One case where adding something
 to an API still breaks a caller, if you can name one.
+
+No. The new overload is an abstract method on a public interface, so any class outside `api/`
+that `implements BookingApi` (a test fake, a caching wrapper) would stop compiling until it
+implements the 5-arg method. The consumer only survived because it uses our
+`InMemoryBookingService` rather than implementing the interface itself.
 
 ---
 
