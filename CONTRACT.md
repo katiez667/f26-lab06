@@ -124,14 +124,56 @@ suite weren't in our build, we'd have shipped this thinking everything was green
 
 **What you added.** The signatures that came back, and what they delegate to.
 
+Two `@Deprecated` **default** methods on `BookingApi`, each with a `@deprecated` javadoc tag
+naming the replacement:
+
+```java
+@Deprecated
+default Booking createBooking(String roomId, long startMinute, long endMinute,
+                              String waitlistKey)
+    // -> createBooking(BookingRequest.of(roomId, startMinute, endMinute)
+    //                      .withWaitlistKey(waitlistKey))
+
+@Deprecated
+default Booking createBooking(String roomId, long startMinute, long endMinute,
+                              String waitlistKey, String notes)
+    // -> createBooking(BookingRequest.of(roomId, startMinute, endMinute)
+    //                      .withWaitlistKey(waitlistKey).withNotes(notes))
+```
+
+They're `default` methods, so the logic lives in one place (`createBooking(BookingRequest)`), and
+an outside class implementing `BookingApi` only has to implement the new method.
+
 **The warnings.** Paste one deprecation warning line from the build log (from
 a `mvn -B clean test` run, since a rerun with nothing to compile prints none).
+
+```
+[WARNING] .../consumer/src/main/java/edu/cmu/cs214/frontdesk/FrontDesk.java:[27,19] createBooking(java.lang.String,long,long,java.lang.String) in edu.cmu.cs214.booking.BookingApi has been deprecated
+[WARNING] .../consumer/src/main/java/edu/cmu/cs214/frontdesk/FrontDesk.java:[33,19] createBooking(java.lang.String,long,long,java.lang.String) in edu.cmu.cs214.booking.BookingApi has been deprecated
+```
+
+What changed from step 1: the two `[ERROR] ... cannot be applied to given types` lines at
+`FrontDesk.java:27` and `:33` became `[WARNING] ... has been deprecated` at the same line and column.
+`lab06-consumer` went from `FAILURE` to `SUCCESS`, and its tests ran again:
+`Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`. `lab06-api` is unchanged (5/5, no warnings,
+since our own code only uses the new method). Overall `BUILD SUCCESS`.
 
 **What the deprecation path resolves.** Who can now build that could not build
 during step 1, and who is on which schedule.
 
+The front desk team (`consumer/`) builds and passes again without changing a line. So does any
+other outside caller of the positional methods. We ship the new `BookingRequest` API on our schedule
+today. They migrate on theirs, whenever they get to it, and until then the old calls keep working.
+The old overloads come out only in a later, announced breaking release, after callers have moved.
+
 **What the warnings accomplish that a README note would not.** Be concrete
 about where the warning shows up and who sees it without looking for it.
+
+A README note has to be found and read. The warning comes to the caller: it appears in *their* build
+log, on every clean compile, naming *their* file and exact line (`FrontDesk.java:[27,19]`), and IDEs
+show the call struck through. Whoever next compiles or edits `FrontDesk` sees it without looking for
+it, and the `@deprecated` javadoc tells them the replacement. It also lists every remaining old call
+site for them, which a README can't do.
 
 ---
 

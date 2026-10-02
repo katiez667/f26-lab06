@@ -62,6 +62,62 @@ public interface BookingApi {
     Booking createBooking(BookingRequest request);
 
     /**
+     * Books a room from positional arguments.
+     *
+     * <p>Equivalent to
+     * {@code createBooking(BookingRequest.of(roomId, startMinute, endMinute).withWaitlistKey(waitlistKey))},
+     * and behaves exactly as {@link #createBooking(BookingRequest)} describes.
+     *
+     * @param roomId      the room to book, non-null
+     * @param startMinute first minute of the booking, inclusive
+     * @param endMinute   first minute after the booking, exclusive; must be
+     *                    greater than {@code startMinute}
+     * @param waitlistKey caller's waitlist key, or null to decline waitlisting
+     * @return the CONFIRMED booking, the WAITLISTED booking, or null when the
+     *         range conflicts and no waitlist key was given
+     * @throws IllegalArgumentException if {@code roomId} is null or
+     *         {@code endMinute} is not greater than {@code startMinute}
+     * @deprecated Use {@link #createBooking(BookingRequest)} with
+     *             {@link BookingRequest#of(String, long, long)} and
+     *             {@link BookingRequest#withWaitlistKey(String)}.
+     */
+    @Deprecated
+    default Booking createBooking(String roomId, long startMinute, long endMinute,
+                                  String waitlistKey) {
+        return createBooking(BookingRequest.of(roomId, startMinute, endMinute)
+                .withWaitlistKey(waitlistKey));
+    }
+
+    /**
+     * Books a room from positional arguments, with notes.
+     *
+     * <p>Equivalent to
+     * {@code createBooking(BookingRequest.of(roomId, startMinute, endMinute).withWaitlistKey(waitlistKey).withNotes(notes))},
+     * and behaves exactly as {@link #createBooking(BookingRequest)} describes.
+     *
+     * @param roomId      the room to book, non-null
+     * @param startMinute first minute of the booking, inclusive
+     * @param endMinute   first minute after the booking, exclusive; must be
+     *                    greater than {@code startMinute}
+     * @param waitlistKey caller's waitlist key, or null to decline waitlisting
+     * @param notes       free-text notes for the booking, or null for none
+     * @return the CONFIRMED booking, the WAITLISTED booking, or null when the
+     *         range conflicts and no waitlist key was given
+     * @throws IllegalArgumentException if {@code roomId} is null or
+     *         {@code endMinute} is not greater than {@code startMinute}
+     * @deprecated Use {@link #createBooking(BookingRequest)} with
+     *             {@link BookingRequest#of(String, long, long)},
+     *             {@link BookingRequest#withWaitlistKey(String)}, and
+     *             {@link BookingRequest#withNotes(String)}.
+     */
+    @Deprecated
+    default Booking createBooking(String roomId, long startMinute, long endMinute,
+                                  String waitlistKey, String notes) {
+        return createBooking(BookingRequest.of(roomId, startMinute, endMinute)
+                .withWaitlistKey(waitlistKey).withNotes(notes));
+    }
+
+    /**
      * Returns every non-cancelled booking for one room, ordered by start minute.
      *
      * <p>Both CONFIRMED and WAITLISTED bookings are included; CANCELLED
