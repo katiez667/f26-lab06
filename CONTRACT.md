@@ -60,10 +60,21 @@ implements the 5-arg method. The consumer only survived because it uses our
 **Will the untouched consumer still compile and pass?** Yes or no, and if no,
 which module goes red and whether at compile time or test time.
 
+No. `lab06-consumer` goes red at compile time (`testCompile` never even starts),
+because the 4-arg `createBooking` it calls no longer exists. Its 7 tests never run.
+
 **Where.** Name the call sites you expect to be affected, if any.
+
+`FrontDesk.java:27` (`bookWalkIn`: `api.createBooking(roomId, startMinute, endMinute, null)`) and
+`FrontDesk.java:33` (`joinWaitlist`: `api.createBooking(roomId, startMinute, endMinute, guestName)`).
+The `listBookings` and `cancelBooking` calls are untouched and should be fine.
 
 **What about the tests in `api/`, after you update them?** And whether their
 result is evidence about the consumer.
+
+They'll pass (5/5), but that is not evidence about the consumer. I rewrote them to the new
+call, so they only prove the new API works. They can't tell me whether old callers still build.
+Only the consumer's own build can detect that break.
 
 ### Step 1: after the fold
 
